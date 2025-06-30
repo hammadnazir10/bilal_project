@@ -1,0 +1,133 @@
+# ========================
+# GLOBAL IGNORE
+# ========================
+# Node modules (both frontend and backend)
+**/node_modules/
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS/System files
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+.env.*      # covers .env.development, .env.local, etc.
+
+# Build output
+dist/
+build/
+tmp/
+temp/
+
+# Cache
+.cache/
+.next/
+.nuxt/
+.vite/
+coverage/
+.vscode/
+.idea/
+
+# Testing
+jest-cache/
+jest.config.js
+coverage/
+
+# TypeScript
+*.tsbuildinfo
+
+# Misc
+*.pem
+*.key
+*.crt
+*.pid
+*.seed
+
+# Editor settings
+*.sublime-workspace
+*.sublime-project
+*.code-workspace
+
+# Dependency directories (pnpm, yarn)
+.pnpm-debug.log
+.yarn/*
+.yarnrc.yml
+
+# Optional lock files (keep only one of your preferred)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Docker
+docker-compose.override.yml
+*.tar
+*.env.docker
+
+# Ignore build artifacts (if deploying with Docker, ignore compiled frontend)
+frontend/build/
+frontend/dist/
+backend/dist/
+public/
+
+# Ignore Traefik acme certs (if any)
+**/acme.json
+
+# Ignore database files
+*.sqlite
+*.db
+*.sqlite3
+
+# Ignore uploads/media
+uploads/
+media/
+public/uploads/
+static/uploads/
+staticfiles/
+
+# Ignore ESLint/Prettier caches
+.eslintcache
+.prettiercache
+
+# Optional Firebase, AWS, or GCP credentials
+firebase.json
+google-services.json
+aws-exports.js
+
+# PM2 logs
+pids/
+*.pid
+*.seed
+*.log
+pm2-*.log
+
+# Local Docker
+.docker/
+.dockerignore
+docker-compose.override.yml
+
+# Ignore Python if any backend scripts (optional)
+*.pyc
+__pycache__/
+
+# Ignore React DevTools profiler data
+.react/
+
+# Ignore IntelliJ IDEA
+.idea/
+
+# Ignore VSCode settings (optional)
+.vscode/
+
+# Ignore environment-specific configuration
+config/*.local.js
+config/*.dev.js
+
+# Optional: ignore credentials config
+credentials.json
