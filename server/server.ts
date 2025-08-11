@@ -22,12 +22,18 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 const allowedOrigins = [
-  "http://localhost:3000", 
-  "https://bilal-project-kcbv.vercel.app" 
+  "http://localhost:3000",
+  "https://bilal-project-kcbv.vercel.app"
 ];
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS not allowed for this origin"));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
