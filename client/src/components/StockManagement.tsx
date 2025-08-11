@@ -71,7 +71,7 @@ const StockManagement: React.FC = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/products');
+      const response = await axios.get('http://outstanding-embrace-production-fe7a.up.railway.app/api/products');
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -80,7 +80,7 @@ const StockManagement: React.FC = () => {
 
   const fetchSuppliers = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/suppliers');
+      const response = await axios.get('http://outstanding-embrace-production-fe7a.up.railway.apphttp://outstanding-embrace-production-fe7a.up.railway.app/api/suppliers');
       setSuppliers(response.data);
     } catch (error) {
       console.error('Error fetching suppliers:', error);
@@ -117,10 +117,10 @@ const StockManagement: React.FC = () => {
     
     try {
       if (editingProduct) {
-        await axios.put(`http://localhost:5000/api/products/${editingProduct._id}`, formData);
+        await axios.put(`http://outstanding-embrace-production-fe7a.up.railway.app/api/products/${editingProduct._id}`, formData);
         setSuccessMessage('Product updated successfully!');
       } else {
-        await axios.post('http://localhost:5000/api/products', formData);
+        await axios.post('http://outstanding-embrace-production-fe7a.up.railway.app/api/products', formData);
         setSuccessMessage('Product added successfully!');
       }
       fetchProducts();
@@ -147,7 +147,7 @@ const StockManagement: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/products/${id}`);
+        await axios.delete(`http://outstanding-embrace-production-fe7a.up.railway.app/api/products/${id}`);
         fetchProducts();
       } catch (error) {
         console.error('Error deleting product:', error);

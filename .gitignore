@@ -70,10 +70,6 @@ docker-compose.override.yml
 *.tar
 *.env.docker
 
-# Ignore build artifacts (if deploying with Docker, ignore compiled frontend)
-frontend/build/
-frontend/dist/
-backend/dist/
 
 # Ignore Traefik acme certs (if any)
 **/acme.json
