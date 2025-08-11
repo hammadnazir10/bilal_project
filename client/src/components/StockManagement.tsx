@@ -80,7 +80,7 @@ const StockManagement: React.FC = () => {
 
   const fetchSuppliers = async () => {
     try {
-      const response = await axios.get('https://outstanding-embrace-production-fe7a.up.railway.apphttp://outstanding-embrace-production-fe7a.up.railway.app/api/suppliers');
+      const response = await axios.get('https://outstanding-embrace-production-fe7a.up.railway.app/api/suppliers');
       setSuppliers(response.data);
     } catch (error) {
       console.error('Error fetching suppliers:', error);
