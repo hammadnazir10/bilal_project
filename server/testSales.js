@@ -4,7 +4,7 @@ async function testSales() {
   try {
     // First, let's check current products
     console.log('=== CHECKING CURRENT PRODUCTS ===');
-    const productsResponse = await axios.get('http://localhost:5000/api/products');
+    const productsResponse = await axios.get('https://outstanding-embrace-production-fe7a.up.railway.app/api/products');
     console.log('Products:', productsResponse.data.map(p => ({
       id: p._id,
       name: p.name,
@@ -33,12 +33,12 @@ async function testSales() {
 
     console.log('Sale data:', saleData);
 
-    const saleResponse = await axios.post('http://localhost:5000/api/sales', saleData);
+    const saleResponse = await axios.post('https://outstanding-embrace-production-fe7a.up.railway.app/api/sales', saleData);
     console.log('Sale created:', saleResponse.data);
 
     // Check products again to see the updated quantity
     console.log('\n=== CHECKING PRODUCTS AFTER SALE ===');
-    const updatedProductsResponse = await axios.get('http://localhost:5000/api/products');
+    const updatedProductsResponse = await axios.get('https://outstanding-embrace-production-fe7a.up.railway.app/api/products');
     const updatedPx3Product = updatedProductsResponse.data.find(p => p._id === px3Product._id);
     console.log(`Updated quantity: ${updatedPx3Product.quantity}`);
     console.log(`Expected quantity: ${px3Product.quantity - 3}`);

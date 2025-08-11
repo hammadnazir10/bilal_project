@@ -18,7 +18,7 @@ async function addSuppliers() {
 
   try {
     for (const supplier of suppliers) {
-      const response = await axios.post('http://outstanding-embrace-production-fe7a.up.railway.app/api/suppliers', supplier);
+      const response = await axios.post('https://outstanding-embrace-production-fe7a.up.railway.app/api/suppliers', supplier);
       console.log('Added supplier:', response.data);
     }
     console.log('All suppliers added successfully!');

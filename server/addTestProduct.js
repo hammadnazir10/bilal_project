@@ -3,7 +3,7 @@ const axios = require('axios');
 async function addTestProduct() {
   try {
     // Get suppliers first to use one for the product
-    const suppliersResponse = await axios.get('http://outstanding-embrace-production-fe7a.up.railway.app/api/suppliers');
+    const suppliersResponse = await axios.get('https://outstanding-embrace-production-fe7a.up.railway.app/api/suppliers');
     const supplier = suppliersResponse.data[0]; // Use first supplier
 
     const productData = {
@@ -17,7 +17,7 @@ async function addTestProduct() {
 
     console.log('Adding product:', productData);
 
-    const response = await axios.post('http://outstanding-embrace-production-fe7a.up.railway.app/api/products', productData);
+    const response = await axios.post('https://outstanding-embrace-production-fe7a.up.railway.app/api/products', productData);
     console.log('Product added:', response.data);
 
   } catch (error) {

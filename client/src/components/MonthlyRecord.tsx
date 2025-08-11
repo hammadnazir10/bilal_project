@@ -58,7 +58,7 @@ const MonthlyRecord: React.FC = () => {
   const fetchMonthlySales = async () => {
     try {
       const response = await axios.get(
-        `http://outstanding-embrace-production-fe7a.up.railway.app/api/sales/monthly/${selectedYear}/${selectedMonth}`
+        `https://outstanding-embrace-production-fe7a.up.railway.app/api/sales/monthly/${selectedYear}/${selectedMonth}`
       );
       setSales(response.data.sales);
       setSummary(response.data.summary);
