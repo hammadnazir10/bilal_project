@@ -47,7 +47,7 @@ const SalesInput: React.FC = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/products');
+      const response = await axios.get('https://railway.com/project/e2630761-d2b8-48bc-adf0-ef0c9cf1f8b8/service/3779b358-2b01-49e9-9636-c73bce03f63b?environmentId=6a3f90de-ffe7-4053-b34a-5932e4685d35/api/products');
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -118,7 +118,7 @@ const SalesInput: React.FC = () => {
     }
 
     try {
-      await axios.post('http://localhost:5000/api/sales', {
+      await axios.post('https://railway.com/project/e2630761-d2b8-48bc-adf0-ef0c9cf1f8b8/service/3779b358-2b01-49e9-9636-c73bce03f63b?environmentId=6a3f90de-ffe7-4053-b34a-5932e4685d35/api/sales', {
         voucherNumber: voucherNumber.trim(),
         products: saleItems.map((item) => ({
           product: item.product._id,
