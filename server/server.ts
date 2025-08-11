@@ -22,16 +22,23 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 const allowedOrigins = [
-  "http://localhost:3000",
-  "https://outstanding-embrace-production-fe7a.up.railway.app"
+  "http://localhost:3000", 
+  "https://bilal-project-kcbv.vercel.app" 
 ];
 
-// Middleware
 app.use(cors({
-  origin: allowedOrigins,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS not allowed"));
+    }
+  },
   credentials: true
 }));
+
+// Middleware
+
 app.use(express.json());
 
 // MongoDB Connection
