@@ -62,5 +62,6 @@
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
     "typescript": "^4.9.5"
-  }
+  },
+  "proxy": "https://outstanding-embrace-production-fe7a.up.railway.app"
 }

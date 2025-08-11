@@ -25,5 +25,4 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   },
-   "proxy": "https://outstanding-embrace-production-fe7a.up.railway.app"
 }
