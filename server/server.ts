@@ -50,6 +50,9 @@ mongoose.connect(mongoURI)
   .catch((err) => console.error('MongoDB connection error:', err));
 
 // Routes
+app.use('/api/test', (req, res) => {
+  res.json({ message: 'Test API is working!' });
+});
 app.use('/api/products', productsRouter);
 app.use('/api/sales', salesRouter);
 app.use('/api/suppliers', suppliersRouter);
