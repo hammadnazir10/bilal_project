@@ -19,7 +19,7 @@ if (!process.env.MONGODB_URI) {
 console.log('Environment variables loaded. PORT:', process.env.PORT, 'MONGODB_URI exists:', !!process.env.MONGODB_URI);
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 8000;
 
 const allowedOrigins = [
   "http://localhost:3000",

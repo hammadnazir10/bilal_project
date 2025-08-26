@@ -22,6 +22,10 @@ const router: Router = express.Router();
 router.get('/', async (_req: Request, res: Response): Promise<void> => {
   try {
     const sales = await Sale.find().populate('products.product');
+    if(!sales || sales.length === 0) {
+      res.status(404).json({ message: 'No sales found' });
+      return;
+    }
     res.json(sales);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
