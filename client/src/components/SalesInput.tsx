@@ -1,21 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box,
+  Container,
+  Row,
+  Col,
   Button,
-  TextField,
+  Form,
   Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  IconButton,
-  Autocomplete,
   Alert,
-} from '@mui/material';
-import { Delete as DeleteIcon } from '@mui/icons-material';
+  Card,
+  CardHeader,
+  CardBody,
+  InputGroup,
+  Badge
+} from 'react-bootstrap';
+import { FaPlus, FaTrash, FaChartLine, FaReceipt, FaCalculator } from 'react-icons/fa';
 import axios from 'axios';
+
+// Icon wrapper component to handle type compatibility
+const IconWrapper: React.FC<{ icon: any; className?: string; style?: React.CSSProperties }> = ({ icon: Icon, className, style }) => {
+  return <Icon className={className} style={style} />;
+};
 
 interface Product {
   _id: string;
@@ -36,7 +40,7 @@ const SalesInput: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
   const [quantity, setQuantity] = useState<number>(1);
-  const [salePrice, setSalePrice] = useState<number>(0);
+     const [salePrice, setSalePrice] = useState<number>(1);
   const [voucherNumber, setVoucherNumber] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
@@ -47,17 +51,22 @@ const SalesInput: React.FC = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('https://railway.com/project/e2630761-d2b8-48bc-adf0-ef0c9cf1f8b8/service/3779b358-2b01-49e9-9636-c73bce03f63b?environmentId=6a3f90de-ffe7-4053-b34a-5932e4685d35/api/products');
+      console.log('Fetching products from local server...');
+      const response = await axios.get('https://outstanding-embrace-production-fe7a.up.railway.app/api/products');
+      console.log('Products fetched:', response.data);
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
     }
   };
-  const handleProductSelect = (product: Product | null) => {
-    setSelectedProduct(product);
-    // Don't auto-fill sale price - user will enter it manually
+
+  const handleProductSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const productId = e.target.value;
+    const product = products.find(p => p._id === productId);
+    setSelectedProduct(product || null);
     setSalePrice(0);
   };
+
   const handleAddItem = () => {
     setErrorMessage('');
     
@@ -66,15 +75,15 @@ const SalesInput: React.FC = () => {
       return;
     }
     
-    if (quantity <= 0) {
-      setErrorMessage('Quantity must be greater than 0');
-      return;
-    }
+         if (quantity < 1) {
+       setErrorMessage('Quantity must be 1 or above');
+       return;
+     }
     
-    if (salePrice <= 0) {
-      setErrorMessage('Sale price must be greater than 0');
-      return;
-    }
+         if (salePrice < 1) {
+       setErrorMessage('Sale price must be 1 or above');
+       return;
+     }
     
     if (quantity > selectedProduct.quantity) {
       setErrorMessage(`Not enough stock available! Available: ${selectedProduct.quantity}, Requested: ${quantity}`);
@@ -90,10 +99,10 @@ const SalesInput: React.FC = () => {
       },
     ]);
 
-    setSelectedProduct(null);
-    setQuantity(1);
-    setSalePrice(0);
-    setSuccessMessage('Item added to sale');
+         setSelectedProduct(null);
+     setQuantity(1);
+     setSalePrice(1);
+     setSuccessMessage('Item added to sale');
   };
 
   const handleRemoveItem = (index: number) => {
@@ -103,6 +112,7 @@ const SalesInput: React.FC = () => {
   const calculateTotal = () => {
     return saleItems.reduce((total, item) => total + item.quantity * item.salePrice, 0);
   };
+
   const handleSubmit = async () => {
     setErrorMessage('');
     setSuccessMessage('');
@@ -118,7 +128,7 @@ const SalesInput: React.FC = () => {
     }
 
     try {
-      await axios.post('https://railway.com/project/e2630761-d2b8-48bc-adf0-ef0c9cf1f8b8/service/3779b358-2b01-49e9-9636-c73bce03f63b?environmentId=6a3f90de-ffe7-4053-b34a-5932e4685d35/api/sales', {
+      await axios.post('https://outstanding-embrace-production-fe7a.up.railway.app/api/sales', {
         voucherNumber: voucherNumber.trim(),
         products: saleItems.map((item) => ({
           product: item.product._id,
@@ -138,104 +148,200 @@ const SalesInput: React.FC = () => {
       setErrorMessage(message);
     }
   };
+
   return (
-    <Box p={3}>
+    <div className="sales-input">
+      <div className="page-header">
+        <h1 className="page-title">
+          <IconWrapper icon={FaChartLine} className="me-3" />
+          Sales Input
+        </h1>
+        <p className="page-subtitle">Record new sales and manage transactions</p>
+      </div>
+
       {errorMessage && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert variant="danger" className="mb-4">
           {errorMessage}
         </Alert>
       )}
       {successMessage && (
-        <Alert severity="success" sx={{ mb: 2 }}>
+        <Alert variant="success" className="mb-4">
           {successMessage}
         </Alert>
       )}
-      
-      <Box mb={3}>
-        <TextField
-          label="Voucher Number"
-          value={voucherNumber}
-          onChange={(e) => setVoucherNumber(e.target.value)}
-          fullWidth
-          required
-          sx={{ mb: 2 }}
-        />
 
-        <Box display="flex" gap={2} mb={2}>
-          <Autocomplete
-            options={products}
-            getOptionLabel={(product) => `${product.productId} - ${product.name}`}
-            value={selectedProduct}
-            onChange={(_, newValue) => handleProductSelect(newValue)}
-            renderInput={(params) => (
-              <TextField {...params} label="Select Product" sx={{ width: 300 }} />
-            )}
-          />
-          <TextField
-            label="Quantity"
-            type="number"
-            value={quantity}
-            onChange={(e) => setQuantity(Number(e.target.value))}
-            sx={{ width: 150 }}
-          />
-          <TextField
-            label="Sale Price"
-            type="number"
-            value={salePrice}
-            onChange={(e) => setSalePrice(Number(e.target.value))}
-            sx={{ width: 150 }}
-          />
-          <Button variant="contained" onClick={handleAddItem}>
-            Add Item
-          </Button>
-        </Box>
+            <Row className="g-4">
+        <Col xl={8} lg={12} md={12} sm={12}>
+          <Card className="sale-form-card">
+            <CardHeader className="bg-primary text-white">
+              <h5 className="mb-0">
+                <IconWrapper icon={FaReceipt} className="me-2" />
+                Sale Information
+              </h5>
+            </CardHeader>
+            <CardBody>
+              <Form.Group className="mb-3">
+                <Form.Label>Voucher Number *</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={voucherNumber}
+                  onChange={(e) => setVoucherNumber(e.target.value)}
+                  placeholder="Enter voucher number"
+                  required
+                />
+              </Form.Group>
 
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Product ID</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Quantity</TableCell>
-                <TableCell>Price</TableCell>
-                <TableCell>Total</TableCell>
-                <TableCell>Action</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {saleItems.map((item, index) => (
-                <TableRow key={index}>
-                  <TableCell>{item.product.productId}</TableCell>
-                  <TableCell>{item.product.name}</TableCell>
-                  <TableCell>{item.quantity}</TableCell>
-                  <TableCell>{item.salePrice}</TableCell>
-                  <TableCell>{item.quantity * item.salePrice}</TableCell>
-                  <TableCell>
-                    <IconButton onClick={() => handleRemoveItem(index)} color="error">
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-              <TableRow>
-                <TableCell colSpan={4} align="right">
-                  <strong>Total Amount:</strong>
-                </TableCell>
-                <TableCell colSpan={2}>
-                  <strong>{calculateTotal()}</strong>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </TableContainer>
+              <Row className="g-3">
+                <Col xl={6} lg={6} md={12} sm={12}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Select Product *</Form.Label>
+                    <Form.Select
+                      value={selectedProduct?._id || ''}
+                      onChange={handleProductSelect}
+                      required
+                    >
+                      <option value="">Choose a product...</option>
+                      {products.map((product) => (
+                        <option key={product._id} value={product._id}>
+                          {product.productId} - {product.name} (Stock: {product.quantity})
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col xl={3} lg={3} md={6} sm={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Quantity *</Form.Label>
+                    <Form.Control
+                      type="number"
+                      value={quantity}
+                      onChange={(e) => setQuantity(Number(e.target.value))}
+                      min="1"
+                      max={selectedProduct?.quantity || 999}
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+                                 <Col xl={3} lg={3} md={6} sm={6}>
+                   <Form.Group className="mb-3">
+                     <Form.Label>Sale Price (PKR) *</Form.Label>
+                     <Form.Control
+                       type="number"
+                       value={salePrice}
+                       onChange={(e) => setSalePrice(Number(e.target.value))}
+                       min="1"
+                       step="1"
+                       required
+                     />
+                   </Form.Group>
+                 </Col>
+              </Row>
 
-        <Box mt={2} display="flex" justifyContent="flex-end">
-          <Button variant="contained" color="primary" onClick={handleSubmit}>
-            Record Sale
-          </Button>
-        </Box>
-      </Box>
-    </Box>
+              <Button 
+                variant="success" 
+                onClick={handleAddItem}
+                className="w-100"
+                                 disabled={!selectedProduct || quantity < 1 || salePrice < 1}
+              >
+                <IconWrapper icon={FaPlus} className="me-2" />
+                Add Item to Sale
+              </Button>
+            </CardBody>
+          </Card>
+        </Col>
+
+        <Col xl={4} lg={12} md={12} sm={12}>
+          <Card className="sale-summary-card">
+            <CardHeader className="bg-info text-white">
+              <h5 className="mb-0">
+                <IconWrapper icon={FaCalculator} className="me-2" />
+                Sale Summary
+              </h5>
+            </CardHeader>
+            <CardBody>
+              <div className="summary-stats">
+                <div className="stat-item">
+                  <span className="stat-label">Items:</span>
+                  <Badge bg="primary" className="stat-value">{saleItems.length}</Badge>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">Total Amount:</span>
+                  <span className="stat-value total-amount">PKR {calculateTotal().toLocaleString()}</span>
+                </div>
+              </div>
+              
+              <Button 
+                variant="primary" 
+                size="lg"
+                onClick={handleSubmit}
+                className="w-100 mt-3"
+                disabled={saleItems.length === 0 || !voucherNumber.trim()}
+              >
+                <IconWrapper icon={FaReceipt} className="me-2" />
+                Record Sale
+              </Button>
+            </CardBody>
+          </Card>
+        </Col>
+      </Row>
+
+      {saleItems.length > 0 && (
+        <Card className="sale-items-card mt-4">
+          <CardHeader className="bg-dark text-white">
+            <h5 className="mb-0">
+              <IconWrapper icon={FaChartLine} className="me-2" />
+              Sale Items ({saleItems.length})
+            </h5>
+          </CardHeader>
+          <CardBody className="p-0">
+            <div className="table-responsive">
+              <Table className="table-hover mb-0">
+                <thead className="table-light">
+                  <tr>
+                    <th>Product ID</th>
+                    <th>Name</th>
+                    <th>Quantity</th>
+                    <th>Sale Price</th>
+                    <th>Total</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {saleItems.map((item, index) => (
+                    <tr key={index} className="sale-item-row">
+                      <td>
+                        <Badge bg="secondary">{item.product.productId}</Badge>
+                      </td>
+                      <td>
+                        <div className="product-name">{item.product.name}</div>
+                      </td>
+                      <td>
+                        <Badge bg="info">{item.quantity}</Badge>
+                      </td>
+                      <td>
+                                                 <strong className="text-success">PKR {item.salePrice.toLocaleString()}</strong>
+                      </td>
+                      <td>
+                                                 <strong className="text-primary">PKR {(item.quantity * item.salePrice).toLocaleString()}</strong>
+                      </td>
+                      <td>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => handleRemoveItem(index)}
+                        >
+                          <IconWrapper icon={FaTrash} />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          </CardBody>
+        </Card>
+      )}
+    </div>
   );
 };
 

@@ -1,24 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box,
+  Container,
+  Row,
+  Col,
   Button,
-  TextField,
+  Form,
   Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  IconButton,
+  Modal,
   Alert,
-} from '@mui/material';
-import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+  InputGroup,
+  Badge,
+  Card,
+  CardHeader,
+  CardBody
+} from 'react-bootstrap';
+import { FaPlus, FaSearch, FaEdit, FaTrash, FaTruck, FaUser, FaMapMarkerAlt, FaCreditCard } from 'react-icons/fa';
 import axios from 'axios';
+
+// Icon wrapper component to handle type compatibility
+const IconWrapper: React.FC<{ icon: any; className?: string; style?: React.CSSProperties }> = ({ icon: Icon, className, style }) => {
+  return <Icon className={className} style={style} />;
+};
 
 interface Supplier {
   _id: string;
@@ -31,7 +33,7 @@ interface Supplier {
 
 const SupplierManagement: React.FC = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [open, setOpen] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
@@ -46,6 +48,7 @@ const SupplierManagement: React.FC = () => {
   useEffect(() => {
     fetchSuppliers();
   }, []);
+
   const fetchSuppliers = async () => {
     try {
       const response = await axios.get('https://outstanding-embrace-production-fe7a.up.railway.app/api/suppliers');
@@ -57,11 +60,12 @@ const SupplierManagement: React.FC = () => {
     }
   };
 
-  const handleOpen = () => {
-    setOpen(true);
+  const handleShowModal = () => {
+    setShowModal(true);
   };
-  const handleClose = () => {
-    setOpen(false);
+
+  const handleCloseModal = () => {
+    setShowModal(false);
     setEditingSupplier(null);
     setErrorMessage('');
     setSuccessMessage('');
@@ -73,13 +77,14 @@ const SupplierManagement: React.FC = () => {
     });
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: any) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
+
   const handleSubmit = async () => {
     setErrorMessage('');
     setSuccessMessage('');
@@ -103,7 +108,7 @@ const SupplierManagement: React.FC = () => {
         setSuccessMessage('Supplier added successfully!');
       }
       fetchSuppliers();
-      handleClose();
+      handleCloseModal();
     } catch (error: any) {
       console.error('Error saving supplier:', error);
       const message = error.response?.data?.message || 'Failed to save supplier. Please try again.';
@@ -119,8 +124,9 @@ const SupplierManagement: React.FC = () => {
       address: supplier.address || '',
       paymentTerms: supplier.paymentTerms || '',
     });
-    setOpen(true);
+    setShowModal(true);
   };
+
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this supplier?')) {
       try {
@@ -139,118 +145,236 @@ const SupplierManagement: React.FC = () => {
     supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     supplier.contact.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
   return (
-    <Box p={3}>
+    <div className="supplier-management">
+      <div className="page-header">
+        <h1 className="page-title">
+          <IconWrapper icon={FaTruck} className="me-3" />
+          Supplier Management
+        </h1>
+        <p className="page-subtitle">Manage your suppliers and vendor relationships</p>
+      </div>
+
       {errorMessage && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert variant="danger" className="mb-4">
           {errorMessage}
         </Alert>
       )}
       {successMessage && (
-        <Alert severity="success" sx={{ mb: 2 }}>
+        <Alert variant="success" className="mb-4">
           {successMessage}
         </Alert>
       )}
-      
-      <Box mb={3} display="flex" justifyContent="space-between" alignItems="center">
-        <TextField
-          label="Search suppliers"
-          variant="outlined"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ width: 300 }}
-        />
-        <Button variant="contained" color="primary" onClick={handleOpen}>
-          Add New Supplier
-        </Button>
-      </Box>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Contact</TableCell>
-              <TableCell>Address</TableCell>
-              <TableCell>Payment Terms</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredSuppliers.map((supplier) => (
-              <TableRow key={supplier._id}>
-                <TableCell>{supplier.name}</TableCell>
-                <TableCell>{supplier.contact}</TableCell>
-                <TableCell>{supplier.address}</TableCell>
-                <TableCell>{supplier.paymentTerms}</TableCell>
-                <TableCell>
-                  <IconButton onClick={() => handleEdit(supplier)} color="primary">
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton onClick={() => handleDelete(supplier._id)} color="error">
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>      <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>{editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}</DialogTitle>
-        <DialogContent>
+      <Row className="g-4 mb-4">
+        <Col xl={8} lg={12} md={12} sm={12}>
+          <Card className="search-card">
+            <CardBody>
+              <InputGroup>
+                <InputGroup.Text>
+                  <IconWrapper icon={FaSearch} />
+                </InputGroup.Text>
+                <Form.Control
+                  type="text"
+                  placeholder="Search suppliers by name or contact..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="border-0"
+                />
+              </InputGroup>
+            </CardBody>
+          </Card>
+        </Col>
+        <Col xl={4} lg={12} md={12} sm={12}>
+          <Button 
+            variant="primary" 
+            size="lg" 
+            onClick={handleShowModal}
+            className="w-100 add-supplier-btn"
+          >
+            <IconWrapper icon={FaPlus} className="me-2" />
+            Add New Supplier
+          </Button>
+        </Col>
+      </Row>
+
+      <Card className="suppliers-table-card">
+        <CardHeader className="d-flex justify-content-between align-items-center">
+          <h5 className="mb-0">
+            <IconWrapper icon={FaTruck} className="me-2" />
+            Suppliers ({filteredSuppliers.length})
+          </h5>
+          <div className="table-actions">
+            <Badge bg="info" className="me-2">
+              Total: {suppliers.length}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardBody className="p-0">
+          <div className="table-responsive">
+            <Table className="table-hover mb-0">
+              <thead className="table-dark">
+                <tr>
+                  <th>Name</th>
+                  <th>Contact</th>
+                  <th>Address</th>
+                  <th>Payment Terms</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredSuppliers.map((supplier) => (
+                  <tr key={supplier._id} className="supplier-row">
+                    <td>
+                      <div className="supplier-name">
+                        <IconWrapper icon={FaUser} className="me-2 text-primary" />
+                        <strong>{supplier.name}</strong>
+                      </div>
+                    </td>
+                    <td>
+                      <Badge bg="secondary">{supplier.contact}</Badge>
+                    </td>
+                    <td>
+                      {supplier.address ? (
+                        <div className="supplier-address">
+                          <IconWrapper icon={FaMapMarkerAlt} className="me-2 text-muted" />
+                          {supplier.address}
+                        </div>
+                      ) : (
+                        <span className="text-muted">No address</span>
+                      )}
+                    </td>
+                    <td>
+                      {supplier.paymentTerms ? (
+                        <div className="payment-terms">
+                          <IconWrapper icon={FaCreditCard} className="me-2 text-muted" />
+                          {supplier.paymentTerms}
+                        </div>
+                      ) : (
+                        <span className="text-muted">Not specified</span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          onClick={() => handleEdit(supplier)}
+                          className="me-2"
+                        >
+                          <IconWrapper icon={FaEdit} />
+                        </Button>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => handleDelete(supplier._id)}
+                        >
+                          <IconWrapper icon={FaTrash} />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* Add/Edit Supplier Modal */}
+      <Modal show={showModal} onHide={handleCloseModal} size="lg" centered>
+        <Modal.Header closeButton className="bg-primary text-white">
+          <Modal.Title>
+            {editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
           {errorMessage && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert variant="danger" className="mb-3">
               {errorMessage}
             </Alert>
           )}
           {successMessage && (
-            <Alert severity="success" sx={{ mb: 2 }}>
+            <Alert variant="success" className="mb-3">
               {successMessage}
             </Alert>
           )}
-          <Box display="flex" flexDirection="column" gap={2} pt={1}>
-            <TextField
-              label="Name"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Contact"
-              name="contact"
-              value={formData.contact}
-              onChange={handleInputChange}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Address"
+          
+          <Row className="g-3">
+            <Col xl={6} lg={6} md={6} sm={12}>
+              <Form.Group className="mb-3">
+                <Form.Label>
+                  <IconWrapper icon={FaUser} className="me-2" />
+                  Supplier Name *
+                </Form.Label>
+                <Form.Control
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  placeholder="Enter supplier name"
+                  required
+                />
+              </Form.Group>
+            </Col>
+            <Col xl={6} lg={6} md={6} sm={12}>
+              <Form.Group className="mb-3">
+                <Form.Label>
+                  <IconWrapper icon={FaUser} className="me-2" />
+                  Contact *
+                </Form.Label>
+                <Form.Control
+                  type="text"
+                  name="contact"
+                  value={formData.contact}
+                  onChange={handleInputChange}
+                  placeholder="Enter contact information"
+                  required
+                />
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <Form.Group className="mb-3">
+            <Form.Label>
+              <IconWrapper icon={FaMapMarkerAlt} className="me-2" />
+              Address
+            </Form.Label>
+            <Form.Control
+              as="textarea"
               name="address"
               value={formData.address}
               onChange={handleInputChange}
-              fullWidth
-              multiline
+              placeholder="Enter supplier address"
               rows={3}
             />
-            <TextField
-              label="Payment Terms"
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>
+              <IconWrapper icon={FaCreditCard} className="me-2" />
+              Payment Terms
+            </Form.Label>
+            <Form.Control
+              type="text"
               name="paymentTerms"
               value={formData.paymentTerms}
               onChange={handleInputChange}
-              fullWidth
+              placeholder="e.g., Net 30, Cash on Delivery"
             />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained" color="primary">
-            {editingSupplier ? 'Update' : 'Add'}
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseModal}>
+            Cancel
           </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+          <Button variant="primary" onClick={handleSubmit}>
+            {editingSupplier ? 'Update Supplier' : 'Add Supplier'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </div>
   );
 };
 
