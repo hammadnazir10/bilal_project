@@ -36,9 +36,10 @@
     "start": "react-scripts start",
     "server": "cd server && nodemon server.ts",
     "dev": "concurrently \"npm start\" \"npm run server\"",
-    "build": "react-scripts build",
+    "build": "react-scripts build && echo 'Build completed successfully'",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "serve": "serve -s build -l 3000"
   },
   "eslintConfig": {
     "extends": [
