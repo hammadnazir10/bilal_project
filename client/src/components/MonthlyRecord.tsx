@@ -63,8 +63,8 @@ const MonthlyRecord: React.FC = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `https://outstanding-embrace-production-fe7a.up.railway.app/api/sales/monthly/${selectedYear}/${selectedMonth}`
-      );
+        `${process.env.REACT_APP_API_BASE_URL}/sales/monthly/${selectedYear}/${selectedMonth}`
+      )
       setSales(response.data.sales);
       setSummary(response.data.summary);
     } catch (error) {

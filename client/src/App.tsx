@@ -196,7 +196,7 @@ const Dashboard: React.FC = () => {
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('https://outstanding-embrace-production-fe7a.up.railway.app/api/dashboard/stats');
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/dashboard/stats`);
       setStats(response.data);
       setError(null);
     } catch (error) {

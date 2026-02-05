@@ -69,7 +69,7 @@ const StockManagement: React.FC = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('https://outstanding-embrace-production-fe7a.up.railway.app/api/products');
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/products`);
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -78,7 +78,7 @@ const StockManagement: React.FC = () => {
 
   const fetchSuppliers = async () => {
     try {
-      const response = await axios.get('https://outstanding-embrace-production-fe7a.up.railway.app/api/suppliers');
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/suppliers`);
       setSuppliers(response.data);
     } catch (error) {
       console.error('Error fetching suppliers:', error);
@@ -118,10 +118,10 @@ const StockManagement: React.FC = () => {
     
     try {
       if (editingProduct) {
-        await axios.put(`https://outstanding-embrace-production-fe7a.up.railway.app/api/products/${editingProduct._id}`, formData);
+        await axios.put(`${process.env.REACT_APP_API_BASE_URL}/products/${editingProduct._id}`, formData);
         setSuccessMessage('Product updated successfully!');
       } else {
-        await axios.post('https://outstanding-embrace-production-fe7a.up.railway.app/api/products', formData);
+        await axios.post(`${process.env.REACT_APP_API_BASE_URL}/products`, formData);
         setSuccessMessage('Product added successfully!');
       }
       fetchProducts();
@@ -149,7 +149,7 @@ const StockManagement: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        await axios.delete(`https://outstanding-embrace-production-fe7a.up.railway.app/api/products/${id}`);
+        await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/products/${id}`);
         fetchProducts();
       } catch (error) {
         console.error('Error deleting product:', error);

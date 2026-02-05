@@ -52,7 +52,7 @@ const SalesInput: React.FC = () => {
   const fetchProducts = async () => {
     try {
       console.log('Fetching products from local server...');
-      const response = await axios.get('https://outstanding-embrace-production-fe7a.up.railway.app/api/products');
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/products`);
       console.log('Products fetched:', response.data);
       setProducts(response.data);
     } catch (error) {
@@ -128,7 +128,7 @@ const SalesInput: React.FC = () => {
     }
 
     try {
-      await axios.post('https://outstanding-embrace-production-fe7a.up.railway.app/api/sales', {
+      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/sales`, {
         voucherNumber: voucherNumber.trim(),
         products: saleItems.map((item) => ({
           product: item.product._id,

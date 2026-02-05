@@ -51,7 +51,7 @@ const SupplierManagement: React.FC = () => {
 
   const fetchSuppliers = async () => {
     try {
-      const response = await axios.get('https://outstanding-embrace-production-fe7a.up.railway.app/api/suppliers');
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/suppliers`);
       setSuppliers(response.data);
       setErrorMessage('');
     } catch (error) {
@@ -101,10 +101,10 @@ const SupplierManagement: React.FC = () => {
     
     try {
       if (editingSupplier) {
-        await axios.put(`https://outstanding-embrace-production-fe7a.up.railway.app/api/suppliers/${editingSupplier._id}`, formData);
+        await axios.put(`${process.env.REACT_APP_API_BASE_URL}/suppliers/${editingSupplier._id}`, formData);
         setSuccessMessage('Supplier updated successfully!');
       } else {
-        await axios.post('https://outstanding-embrace-production-fe7a.up.railway.app/api/suppliers', formData);
+        await axios.post(`${process.env.REACT_APP_API_BASE_URL}/suppliers`, formData);
         setSuccessMessage('Supplier added successfully!');
       }
       fetchSuppliers();
@@ -130,7 +130,7 @@ const SupplierManagement: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this supplier?')) {
       try {
-        await axios.delete(`https://outstanding-embrace-production-fe7a.up.railway.app/api/suppliers/${id}`);
+        await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/suppliers/${id}`);
         fetchSuppliers();
         setSuccessMessage('Supplier deleted successfully!');
       } catch (error: any) {
