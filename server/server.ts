@@ -24,8 +24,8 @@ const port = process.env.PORT || 8000;
 
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://outstanding-embrace-production-fe7a.up.railway.app",
-  "https://bilal-project-kcbv.vercel.app"
+  "https://bilal-project.onrender.com/api",
+  "https://bilal-project.onrender.com"
 ];
 
 app.use(cors({
