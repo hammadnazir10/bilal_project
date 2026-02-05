@@ -62,6 +62,7 @@ router.get('/stats', async (req, res) => {
     
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     res.status(500).json({ 
       message: 'Failed to fetch dashboard statistics',
       error: error instanceof Error ? error.message : 'Unknown error'

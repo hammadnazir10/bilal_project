@@ -25,7 +25,8 @@ const port = process.env.PORT || 8000;
 const allowedOrigins = [
   "http://localhost:3000",
   "https://bilal-project.onrender.com/api",
-  "https://bilal-project.onrender.com"
+  "https://bilal-project.onrender.com",
+  "https://adilarms.onrender.com"
 ];
 
 app.use(cors({
