@@ -22,19 +22,23 @@ const port = process.env.PORT || 8000;
 
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://bilal-project.onrender.com/api",
   "https://bilal-project.onrender.com",
   "https://adilarms.onrender.com"
 ];
 
-app.use(cors({
-  origin: (origin, callback) => {
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     if (!origin || allowedOrigins.includes(origin)) callback(null, true);
-    else callback(new Error("CORS not allowed for this origin"));
+    else callback(null, false);
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
-}));
+};
+
+// Handle preflight requests for all routes
+app.options(/.*/, cors(corsOptions));
+app.use(cors(corsOptions));
 
 app.use(express.json());
 
