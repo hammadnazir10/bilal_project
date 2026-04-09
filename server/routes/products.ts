@@ -1,6 +1,7 @@
 import express, { Request, Response, Router } from 'express';
 import { ParamsDictionary } from 'express-serve-static-core';
 import Product from '../models/product';
+import SupplierLedger from '../models/supplierLedger';
 
 interface ProductRequestBody {
   productId: string;
@@ -86,6 +87,19 @@ router.post('/', async (req: Request<ParamsDictionary, any, ProductRequestBody>,
 
     const product = new Product(req.body);
     const newProduct = await product.save();
+
+    // Auto-create purchase ledger entry if supplier assigned and quantity > 0
+    if (req.body.supplier && newProduct.quantity > 0) {
+      await SupplierLedger.create({
+        supplier: req.body.supplier,
+        date: new Date(),
+        type: 'PURCHASE',
+        amount: newProduct.quantity * newProduct.costPrice,
+        reference: newProduct.name,
+        notes: `Initial stock: ${newProduct.quantity} units @ PKR ${newProduct.costPrice}`,
+      });
+    }
+
     res.status(201).json(newProduct);
   } catch (error: any) {
     console.error('Error adding product:', error);
@@ -110,8 +124,23 @@ router.put('/:id', async (req: Request<{ id: string }, any, ProductRequestBody>,
   try {
     const product = await Product.findById(req.params.id);
     if (product) {
+      const oldQuantity = product.quantity;
       Object.assign(product, req.body);
       const updatedProduct = await product.save();
+
+      // Auto-create purchase ledger entry if quantity increased and supplier is set
+      const addedQty = updatedProduct.quantity - oldQuantity;
+      if (addedQty > 0 && updatedProduct.supplier) {
+        await SupplierLedger.create({
+          supplier: updatedProduct.supplier,
+          date: new Date(),
+          type: 'PURCHASE',
+          amount: addedQty * updatedProduct.costPrice,
+          reference: updatedProduct.name,
+          notes: `Stock addition: ${addedQty} units @ PKR ${updatedProduct.costPrice}`,
+        });
+      }
+
       res.json(updatedProduct);
     } else {
       res.status(404).json({ message: 'Product not found' });

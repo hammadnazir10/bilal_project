@@ -39,6 +39,25 @@ const ACTIVITIES = [
 ];
 
 // ── types ──────────────────────────────────────────────────────────────────
+interface LedgerEntry {
+  _id: string;
+  supplier: string;
+  date: string;
+  type: 'PURCHASE' | 'PAYMENT';
+  amount: number;
+  reference?: string;
+  notes?: string;
+  runningBalance: number;
+}
+
+interface LedgerSummary {
+  totalPurchases: number;
+  totalPaid: number;
+  balance: number;
+  lastPaymentDate: string | null;
+  lastTransactionDate: string | null;
+}
+
 interface Product {
   _id: string;
   productId: string;
@@ -303,8 +322,8 @@ function StockPage() {
               {suppliers.map(s=><option key={s._id} value={s._id}>{s.name}</option>)}
             </select>
           </div>
-          <div className="fd"><label>Quantity</label><input type="number" min="0" placeholder="0" value={form.quantity} onChange={e=>setForm({...form,quantity:e.target.value})}/></div>
-          <div className="fd" style={{gridColumn:"span 2"}}><label>Cost Price (PKR)</label><input type="number" min="0" placeholder="0" value={form.costPrice} onChange={e=>setForm({...form,costPrice:e.target.value})}/></div>
+          <div className="fd"><label>Quantity</label><input type="number" min="0" placeholder="0" value={form.quantity} onChange={e=>setForm({...form,quantity:e.target.value})} onFocus={e=>e.target.select()}/></div>
+          <div className="fd" style={{gridColumn:"span 2"}}><label>Cost Price (PKR)</label><input type="number" min="0" placeholder="0" value={form.costPrice} onChange={e=>setForm({...form,costPrice:e.target.value})} onFocus={e=>e.target.select()}/></div>
         </div>
         <div className="ma"><button className="sb" onClick={closeModal}>Cancel</button><button className="pb" onClick={save}>{editProd ? "Update Product" : "Add Product"}</button></div>
       </Modal>
@@ -375,8 +394,8 @@ function SalesPage() {
                   {products.map(p=><option key={p._id} value={p._id}>{p.productId} — {p.name} (Stock: {p.quantity})</option>)}
                 </select>
               </div>
-              <div className="fd" style={{flex:1}}><label>Quantity *</label><input type="number" min="1" value={qty} onChange={e=>setQty(Number(e.target.value))}/></div>
-              <div className="fd" style={{flex:1}}><label>Sale Price (PKR) *</label><input type="number" min="1" value={price} onChange={e=>setPrice(Number(e.target.value))}/></div>
+              <div className="fd" style={{flex:1}}><label>Quantity *</label><input type="number" min="1" value={qty} onChange={e=>setQty(Number(e.target.value))} onFocus={e=>e.target.select()}/></div>
+              <div className="fd" style={{flex:1}}><label>Sale Price (PKR) *</label><input type="number" min="1" value={price} onChange={e=>setPrice(Number(e.target.value))} onFocus={e=>e.target.select()}/></div>
             </div>
             <button className="aib" onClick={addItem}>+ Add Item to Sale</button>
           </div>
@@ -576,6 +595,195 @@ function SupplierPage() {
           </div>
         </div>
         <div className="ma"><button className="sb" onClick={closeModal}>Cancel</button><button className="pb" onClick={save}>{editSup ? "Update Supplier" : "Add Supplier"}</button></div>
+      </Modal>
+    </div>
+  );
+}
+
+// ── LEDGER ────────────────────────────────────────────────────────────────
+function LedgerPage() {
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [selSup, setSelSup] = useState("");
+  const [entries, setEntries] = useState<LedgerEntry[]>([]);
+  const [summary, setSummary] = useState<LedgerSummary | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [payForm, setPayForm] = useState({ amount: "", date: new Date().toISOString().split("T")[0], notes: "", reference: "" });
+  const [err, setErr] = useState("");
+  const [ok, setOk] = useState("");
+
+  useEffect(() => {
+    axios.get<Supplier[]>(`${API}/suppliers`).then(r => setSuppliers(r.data)).catch(console.error);
+  }, []);
+
+  const loadLedger = (supId: string) => {
+    if (!supId) { setEntries([]); setSummary(null); return; }
+    setLoading(true);
+    Promise.all([
+      axios.get<LedgerEntry[]>(`${API}/ledger/supplier/${supId}`),
+      axios.get<LedgerSummary>(`${API}/ledger/supplier/${supId}/summary`),
+    ]).then(([e, s]) => { setEntries(e.data); setSummary(s.data); })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { loadLedger(selSup); }, [selSup]);
+
+  const addPayment = async () => {
+    setErr(""); setOk("");
+    if (!selSup) { setErr("Please select a supplier."); return; }
+    const amount = Number(payForm.amount);
+    if (!amount || amount <= 0) { setErr("Please enter a valid amount."); return; }
+    try {
+      await axios.post(`${API}/ledger/payment`, {
+        supplier: selSup, amount, date: payForm.date, notes: payForm.notes, reference: payForm.reference,
+      });
+      setShowPayment(false);
+      setPayForm({ amount: "", date: new Date().toISOString().split("T")[0], notes: "", reference: "" });
+      setOk("Payment recorded successfully!");
+      loadLedger(selSup);
+    } catch (e: any) { setErr(e.response?.data?.message || "Failed to record payment."); }
+  };
+
+  const delEntry = async (id: string) => {
+    if (!window.confirm("Delete this payment entry?")) return;
+    try { await axios.delete(`${API}/ledger/${id}`); loadLedger(selSup); }
+    catch (e: any) { alert(e.response?.data?.message || "Failed to delete entry."); }
+  };
+
+  const supName = suppliers.find(s => s._id === selSup)?.name || "";
+
+  return (
+    <div className="pg pgE">
+      <div className="pgH"><div className="pgHBg"/><div className="pgHC"><div className="pgBadge">📒 ACCOUNTING</div><h1 className="pgT">Ledger / Khata</h1><p className="pgS">Track supplier purchases, payments and outstanding balances</p></div><div className="orb o1"/><div className="orb o2"/></div>
+
+      {ok && <div className="okbx">{ok}</div>}
+
+      {/* Supplier Selector */}
+      <div className="gc gcE">
+        <div className="ch"><span className="chi">🤝</span><h3>Select Supplier</h3></div>
+        <div className="fr" style={{alignItems:"flex-end"}}>
+          <div className="fd" style={{flex:2}}>
+            <label>Supplier</label>
+            <select value={selSup} onChange={e=>{setSelSup(e.target.value); setOk("");}}>
+              <option value="">— Select a supplier to view their ledger —</option>
+              {suppliers.map(s=><option key={s._id} value={s._id}>{s.name} ({s.contact})</option>)}
+            </select>
+          </div>
+          {selSup && (
+            <button className="pb" onClick={()=>{setShowPayment(true); setErr("");}}>
+              💰 Add Payment
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      {summary && (
+        <div className="stG stG3">
+          <div className="sc3d" style={{["--ac" as any]:"#f87171",animationDelay:"0ms"}}>
+            <div className="sc3d-glow"/><div className="sc3d-icon">🛒</div>
+            <div className="sc3d-val">PKR {summary.totalPurchases.toLocaleString()}</div>
+            <div className="sc3d-lbl">TOTAL PURCHASES</div><div className="sc3d-shine"/>
+          </div>
+          <div className="sc3d" style={{["--ac" as any]:"#34d399",animationDelay:"100ms"}}>
+            <div className="sc3d-glow"/><div className="sc3d-icon">✅</div>
+            <div className="sc3d-val">PKR {summary.totalPaid.toLocaleString()}</div>
+            <div className="sc3d-lbl">TOTAL PAID</div><div className="sc3d-shine"/>
+          </div>
+          <div className="sc3d" style={{["--ac" as any]:summary.balance>0?"#f87171":"#34d399",animationDelay:"200ms"}}>
+            <div className="sc3d-glow"/><div className="sc3d-icon">{summary.balance>0?"⚠️":"✅"}</div>
+            <div className="sc3d-val" style={{color:summary.balance>0?"var(--rd)":"var(--gn)"}}>PKR {summary.balance.toLocaleString()}</div>
+            <div className="sc3d-lbl">BALANCE DUE</div><div className="sc3d-shine"/>
+          </div>
+        </div>
+      )}
+
+      {/* Ledger Table */}
+      {selSup && (
+        <div className="gc gcE" style={{animationDelay:"300ms"}}>
+          <div className="ch">
+            <h3>📒 {supName} — Transaction History</h3>
+            <span className="badge">{entries.length} entries</span>
+          </div>
+          {loading ? <div className="ldg">Loading...</div> : (
+            <div className="tw">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>DATE</th><th>TYPE</th><th>DESCRIPTION</th>
+                    <th>PURCHASE (DR)</th><th>PAYMENT (CR)</th><th>RUNNING BALANCE</th><th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {entries.length === 0
+                    ? <tr><td colSpan={7} className="emp">No transactions found for this supplier</td></tr>
+                    : entries.map((e, i) => (
+                      <tr key={e._id} className="tr" style={{animationDelay:`${i*50}ms`}}>
+                        <td><span className="mono">{new Date(e.date).toLocaleDateString()}</span></td>
+                        <td>
+                          <span className={`st ${e.type==='PURCHASE'?'st-lowstock':'st-instock'}`}>
+                            {e.type}
+                          </span>
+                        </td>
+                        <td>
+                          {e.reference && <strong style={{display:"block"}}>{e.reference}</strong>}
+                          {e.notes && <span style={{fontSize:11,color:"var(--tx3)"}}>{e.notes}</span>}
+                        </td>
+                        <td style={{color:"var(--rd)",fontWeight:600}}>
+                          {e.type==='PURCHASE' ? `PKR ${e.amount.toLocaleString()}` : '—'}
+                        </td>
+                        <td style={{color:"var(--gn)",fontWeight:600}}>
+                          {e.type==='PAYMENT' ? `PKR ${e.amount.toLocaleString()}` : '—'}
+                        </td>
+                        <td style={{color:e.runningBalance>0?"var(--rd)":"var(--gn)",fontWeight:700}}>
+                          PKR {e.runningBalance.toLocaleString()}
+                        </td>
+                        <td>
+                          {e.type==='PAYMENT' && (
+                            <button className="ib id" onClick={()=>delEntry(e._id)} title="Delete payment">🗑️</button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Add Payment Modal */}
+      <Modal isOpen={showPayment} onClose={()=>setShowPayment(false)} title="💰 Record Payment">
+        {err && <div className="errbx">{err}</div>}
+        <div className="fg">
+          <div className="fd">
+            <label>Amount (PKR) *</label>
+            <input type="number" min="1" placeholder="Enter amount" value={payForm.amount}
+              onChange={e=>setPayForm({...payForm,amount:e.target.value})}
+              onFocus={e=>e.target.select()}/>
+          </div>
+          <div className="fd">
+            <label>Date</label>
+            <input type="date" value={payForm.date}
+              onChange={e=>setPayForm({...payForm,date:e.target.value})}/>
+          </div>
+          <div className="fd">
+            <label>Reference / Method</label>
+            <input placeholder="e.g. Cash, Bank Transfer, Cheque" value={payForm.reference}
+              onChange={e=>setPayForm({...payForm,reference:e.target.value})}/>
+          </div>
+          <div className="fd">
+            <label>Notes</label>
+            <input placeholder="Optional notes" value={payForm.notes}
+              onChange={e=>setPayForm({...payForm,notes:e.target.value})}/>
+          </div>
+        </div>
+        <div className="ma">
+          <button className="sb" onClick={()=>setShowPayment(false)}>Cancel</button>
+          <button className="pb" onClick={addPayment}>💰 Record Payment</button>
+        </div>
       </Modal>
     </div>
   );
@@ -798,6 +1006,7 @@ const NAV = [
   {key:"sales",    icon:"📝",label:"Sales Input"},
   {key:"monthly",  icon:"📊",label:"Monthly Records"},
   {key:"suppliers",icon:"🤝",label:"Supplier Management"},
+  {key:"ledger",   icon:"📒",label:"Ledger / Khata"},
 ];
 
 // ── APP ───────────────────────────────────────────────────────────────────
@@ -822,6 +1031,7 @@ export default function App() {
       case "sales":     return <SalesPage/>;
       case "monthly":   return <MonthlyPage/>;
       case "suppliers": return <SupplierPage/>;
+      case "ledger":    return <LedgerPage/>;
       default:          return <DashboardPage/>;
     }
   };
