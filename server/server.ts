@@ -7,17 +7,14 @@ import productsRouter from './routes/products';
 import salesRouter from './routes/sales';
 import suppliersRouter from './routes/suppliers';
 import dashboardRouter from './routes/dashboard';
+import authRouter from './routes/auth';
+import { requireAuth } from './middleware/auth';
 
-// Configure dotenv - try multiple paths
+// Configure dotenv
 const envPath = path.resolve(__dirname, '.env');
 const envPathAlt = path.resolve(process.cwd(), '.env');
-console.log('Trying to load .env from:', envPath);
 dotenv.config({ path: envPath });
-if (!process.env.MONGODB_URI) {
-  console.log('Trying alternative .env path:', envPathAlt);
-  dotenv.config({ path: envPathAlt });
-}
-console.log('Environment variables loaded. PORT:', process.env.PORT, 'MONGODB_URI exists:', !!process.env.MONGODB_URI);
+if (!process.env.MONGODB_URI) dotenv.config({ path: envPathAlt });
 
 const app = express();
 const port = process.env.PORT || 8000;
@@ -31,36 +28,28 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("CORS not allowed for this origin"));
-    }
+    if (!origin || allowedOrigins.includes(origin)) callback(null, true);
+    else callback(new Error("CORS not allowed for this origin"));
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
 
-// Middleware
-
 app.use(express.json());
 
-// MongoDB Connection
+// MongoDB
 const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/myshop';
-console.log('Attempting to connect to MongoDB with URI:', mongoURI);
 mongoose.connect(mongoURI)
-  .then(() => console.log('MongoDB connected successfully'))
-  .catch((err) => console.error('MongoDB connection error:', err));
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.error('MongoDB error:', err));
 
-// Routes
-app.use('/api/test', (req, res) => {
-  res.json({ message: 'Test API is working!' });
-});
-app.use('/api/products', productsRouter);
-app.use('/api/sales', salesRouter);
-app.use('/api/suppliers', suppliersRouter);
-app.use('/api/dashboard', dashboardRouter);
+// Public routes
+app.use('/api/auth', authRouter);
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
+// Protected routes
+app.use('/api/products',  requireAuth, productsRouter);
+app.use('/api/sales',     requireAuth, salesRouter);
+app.use('/api/suppliers', requireAuth, suppliersRouter);
+app.use('/api/dashboard', requireAuth, dashboardRouter);
+
+app.listen(port, () => console.log(`Server running on port ${port}`));
