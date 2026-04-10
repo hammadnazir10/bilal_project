@@ -27,7 +27,7 @@ const productSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['Pistol', 'Rifle']
+    enum: ['Pistol', 'Rifle', 'Shotgun', 'Ammunition', 'Accessories', 'Magazine', 'Air Gun']
   },
   createdAt: {
     type: Date,

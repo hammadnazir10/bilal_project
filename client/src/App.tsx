@@ -50,6 +50,34 @@ interface LedgerEntry {
   runningBalance: number;
 }
 
+interface Party {
+  _id: string;
+  name: string;
+  phone?: string;
+  address?: string;
+  partyType: 'Supplier' | 'Customer' | 'Other';
+  openingBalance: number;
+  caseStartDate: string;
+}
+
+interface PartyLedgerEntry {
+  _id: string;
+  party: string;
+  transactionDate: string;
+  systemTimestamp: string;
+  type: 'DEBIT' | 'CREDIT';
+  amount: number;
+  paymentMethod: 'Cash' | 'Online Transfer' | 'Cheque';
+  notes?: string;
+  runningBalance: number;
+}
+
+interface PartyLedgerData {
+  party: Party;
+  entries: PartyLedgerEntry[];
+  currentBalance: number;
+}
+
 interface LedgerSummary {
   totalPurchases: number;
   totalPaid: number;
@@ -312,7 +340,7 @@ function StockPage() {
           <div className="fd"><label>Category *</label>
             <select value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>
               <option value="">Select</option>
-              <option>Pistol</option><option>Rifle</option><option>Assault Rifle</option><option>Shotgun</option><option>Ammunition</option>
+              <option>Pistol</option><option>Rifle</option><option>Shotgun</option><option>Ammunition</option><option>Accessories</option><option>Magazine</option><option>Air Gun</option>
             </select>
           </div>
           <div className="fd" style={{gridColumn:"span 2"}}><label>Product Name *</label><input placeholder="Enter product name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></div>
@@ -789,6 +817,393 @@ function LedgerPage() {
   );
 }
 
+// ── PARTY MANAGEMENT PAGE ─────────────────────────────────────────────────
+function PartyPage({ onViewLedger }: { onViewLedger: (partyId: string) => void }) {
+  const [parties, setParties] = useState<Party[]>([]);
+  const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<Party | null>(null);
+  const [form, setForm] = useState({ name: "", phone: "", address: "", partyType: "Customer" as Party["partyType"], openingBalance: "", caseStartDate: new Date().toISOString().split("T")[0] });
+  const [err, setErr] = useState("");
+  const [ok, setOk] = useState("");
+
+  const load = () => axios.get<Party[]>(`${API}/parties`).then(r => setParties(r.data)).catch(console.error);
+  useEffect(() => { load(); }, []);
+
+  const openAdd = () => {
+    setEditing(null);
+    setForm({ name: "", phone: "", address: "", partyType: "Customer", openingBalance: "", caseStartDate: new Date().toISOString().split("T")[0] });
+    setErr(""); setShowModal(true);
+  };
+  const openEdit = (p: Party) => {
+    setEditing(p);
+    setForm({ name: p.name, phone: p.phone || "", address: p.address || "", partyType: p.partyType, openingBalance: p.openingBalance ? String(p.openingBalance) : "", caseStartDate: new Date(p.caseStartDate).toISOString().split("T")[0] });
+    setErr(""); setShowModal(true);
+  };
+
+  const save = async () => {
+    setErr("");
+    if (!form.name.trim()) { setErr("Name is required."); return; }
+    try {
+      const payload = { ...form, openingBalance: Number(form.openingBalance) || 0 };
+      if (editing) await axios.put(`${API}/parties/${editing._id}`, payload);
+      else await axios.post(`${API}/parties`, payload);
+      setShowModal(false); setOk(editing ? "Party updated!" : "Party added!"); load();
+    } catch (e: any) { setErr(e.response?.data?.message || "Failed to save."); }
+  };
+
+  const del = async (p: Party) => {
+    if (!window.confirm(`Delete "${p.name}"? All their ledger entries will also be deleted.`)) return;
+    try { await axios.delete(`${API}/parties/${p._id}`); setOk("Party deleted."); load(); }
+    catch (e: any) { alert(e.response?.data?.message || "Failed to delete."); }
+  };
+
+  const typeColor = (t: string) => t === "Customer" ? "var(--bl)" : t === "Supplier" ? "var(--or)" : "var(--pr)";
+  const filtered = parties.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || (p.phone || "").includes(search) || p.partyType.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div className="pg pgE">
+      <div className="pgH"><div className="pgHBg"/><div className="pgHC"><div className="pgBadge">👥 PARTIES</div><h1 className="pgT">Party Management</h1><p className="pgS">Manage customers, suppliers and others with case tracking</p></div><div className="orb o1"/><div className="orb o2"/></div>
+      {ok && <div className="okbx">{ok}</div>}
+      <div className="tb">
+        <div className="sw"><span className="si">🔍</span><input className="sin" placeholder="Search by name, phone or type..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
+        <button className="pb" onClick={openAdd}>+ Add Party</button>
+      </div>
+      <div className="gc gcE">
+        <div className="ch"><span className="chi">👥</span><h3>All Parties</h3><span className="badge">{filtered.length} parties</span></div>
+        <div className="tw">
+          <table className="tbl">
+            <thead><tr><th>NAME</th><th>TYPE</th><th>PHONE</th><th>ADDRESS</th><th>CASE START</th><th>OPENING BAL.</th><th>ACTIONS</th></tr></thead>
+            <tbody>
+              {filtered.length === 0
+                ? <tr><td colSpan={7} className="emp">No parties found</td></tr>
+                : filtered.map((p, i) => (
+                  <tr key={p._id} className="tr" style={{animationDelay:`${i*40}ms`}}>
+                    <td><strong style={{color:"var(--tx)"}}>{p.name}</strong></td>
+                    <td><span className="st" style={{background:`color-mix(in srgb,${typeColor(p.partyType)} 12%,transparent)`,color:typeColor(p.partyType)}}>{p.partyType}</span></td>
+                    <td><span className="mono">{p.phone || "—"}</span></td>
+                    <td style={{color:"var(--tx2)",fontSize:12}}>{p.address || "—"}</td>
+                    <td><span className="mono">{new Date(p.caseStartDate).toLocaleDateString()}</span></td>
+                    <td style={{color: p.openingBalance > 0 ? "var(--rd)" : p.openingBalance < 0 ? "var(--gn)" : "var(--tx3)", fontWeight:600}}>
+                      {p.openingBalance !== 0 ? `PKR ${Math.abs(p.openingBalance).toLocaleString()}` : "—"}
+                    </td>
+                    <td>
+                      <div className="abs">
+                        <button className="ib" style={{color:"var(--g)",borderColor:"rgba(201,168,76,.3)"}} onClick={()=>onViewLedger(p._id)} title="View Ledger">📒</button>
+                        <button className="ib ie" onClick={()=>openEdit(p)} title="Edit">✏️</button>
+                        <button className="ib id" onClick={()=>del(p)} title="Delete">🗑️</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <Modal isOpen={showModal} onClose={()=>setShowModal(false)} title={editing ? "✏️ Edit Party" : "➕ Add New Party"}>
+        {err && <div className="errbx">{err}</div>}
+        <div className="fg">
+          <div className="fd">
+            <label>Name *</label>
+            <input placeholder="Full name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/>
+          </div>
+          <div className="fd">
+            <label>Type *</label>
+            <select value={form.partyType} onChange={e=>setForm({...form,partyType:e.target.value as Party["partyType"]})}>
+              <option value="Customer">Customer</option>
+              <option value="Supplier">Supplier</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div className="fd">
+            <label>Phone</label>
+            <input placeholder="Phone number (optional)" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/>
+          </div>
+          <div className="fd">
+            <label>Case Start Date *</label>
+            <input type="date" value={form.caseStartDate} onChange={e=>setForm({...form,caseStartDate:e.target.value})}/>
+          </div>
+          <div className="fd" style={{gridColumn:"1/-1"}}>
+            <label>Address</label>
+            <input placeholder="City / Address (optional)" value={form.address} onChange={e=>setForm({...form,address:e.target.value})}/>
+          </div>
+          <div className="fd" style={{gridColumn:"1/-1"}}>
+            <label>Opening Balance (PKR)</label>
+            <input type="number" placeholder="0 (leave blank if none)" value={form.openingBalance} onChange={e=>setForm({...form,openingBalance:e.target.value})} onFocus={e=>e.target.select()}/>
+          </div>
+        </div>
+        <div className="ma">
+          <button className="sb" onClick={()=>setShowModal(false)}>Cancel</button>
+          <button className="pb" onClick={save}>{editing ? "💾 Update" : "➕ Add Party"}</button>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+// ── PARTY LEDGER TIMELINE PAGE ─────────────────────────────────────────────
+function PartyLedgerPage({ initialPartyId, onBack }: { initialPartyId?: string; onBack: () => void }) {
+  const [parties, setParties] = useState<Party[]>([]);
+  const [selParty, setSelParty] = useState(initialPartyId || "");
+  const [ledgerData, setLedgerData] = useState<PartyLedgerData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showTxn, setShowTxn] = useState(false);
+  const [txnForm, setTxnForm] = useState({ transactionDate: new Date().toISOString().split("T")[0], type: "DEBIT" as "DEBIT"|"CREDIT", amount: "", paymentMethod: "Cash" as PartyLedgerEntry["paymentMethod"], notes: "" });
+  const [err, setErr] = useState("");
+  const [ok, setOk] = useState("");
+
+  useEffect(() => { axios.get<Party[]>(`${API}/parties`).then(r => setParties(r.data)).catch(console.error); }, []);
+  useEffect(() => { if (initialPartyId) setSelParty(initialPartyId); }, [initialPartyId]);
+
+  const loadLedger = (pid: string) => {
+    if (!pid) { setLedgerData(null); return; }
+    setLoading(true);
+    axios.get<PartyLedgerData>(`${API}/party-ledger/party/${pid}`)
+      .then(r => setLedgerData(r.data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { loadLedger(selParty); }, [selParty]);
+
+  const addTransaction = async () => {
+    setErr(""); setOk("");
+    if (!selParty) { setErr("Select a party first."); return; }
+    const amount = Number(txnForm.amount);
+    if (!amount || amount <= 0) { setErr("Enter a valid amount."); return; }
+    try {
+      await axios.post(`${API}/party-ledger/transaction`, { party: selParty, ...txnForm, amount });
+      setShowTxn(false);
+      setTxnForm({ transactionDate: new Date().toISOString().split("T")[0], type: "DEBIT", amount: "", paymentMethod: "Cash", notes: "" });
+      setOk("Transaction recorded!");
+      loadLedger(selParty);
+    } catch (e: any) { setErr(e.response?.data?.message || "Failed to record transaction."); }
+  };
+
+  const delEntry = async (id: string) => {
+    if (!window.confirm("Delete this transaction?")) return;
+    try { await axios.delete(`${API}/party-ledger/${id}`); loadLedger(selParty); }
+    catch (e: any) { alert(e.response?.data?.message || "Failed to delete."); }
+  };
+
+  const bal = ledgerData?.currentBalance ?? 0;
+  const party = ledgerData?.party;
+  const entries = ledgerData?.entries ?? [];
+  const typeColor = (t: string) => t === "Customer" ? "var(--bl)" : t === "Supplier" ? "var(--or)" : "var(--pr)";
+
+  return (
+    <div className="pg pgE">
+      <div className="pgH">
+        <div className="pgHBg"/>
+        <div className="pgHC">
+          <div className="pgBadge">📒 KHATA BOOK</div>
+          <h1 className="pgT">Party Ledger Timeline</h1>
+          <p className="pgS">Complete payment history with transaction dates and running balance</p>
+        </div>
+        <div className="orb o1"/><div className="orb o2"/>
+      </div>
+
+      {ok && <div className="okbx">{ok}</div>}
+
+      {/* Party Selector */}
+      <div className="gc gcE">
+        <div className="ch"><span className="chi">👤</span><h3>Select Party</h3>
+          <button className="sb" style={{padding:"6px 14px",fontSize:12}} onClick={onBack}>← Back to Parties</button>
+        </div>
+        <div className="fr" style={{alignItems:"flex-end"}}>
+          <div className="fd" style={{flex:2}}>
+            <label>Party</label>
+            <select value={selParty} onChange={e=>{setSelParty(e.target.value); setOk("");}}>
+              <option value="">— Select a party to view their ledger timeline —</option>
+              {parties.map(p=><option key={p._id} value={p._id}>{p.name} ({p.partyType}){p.phone ? ` — ${p.phone}` : ""}</option>)}
+            </select>
+          </div>
+          {selParty && (
+            <button className="pb" onClick={()=>{setShowTxn(true); setErr("");}}>+ Add Transaction</button>
+          )}
+        </div>
+      </div>
+
+      {/* Party Info + Summary Cards */}
+      {party && (
+        <>
+          <div className="gc gcE" style={{animationDelay:"50ms",padding:"16px 24px"}}>
+            <div style={{display:"flex",gap:24,flexWrap:"wrap",alignItems:"center"}}>
+              <div>
+                <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"var(--tx3)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>Party</div>
+                <div style={{fontWeight:700,fontSize:18,color:"var(--tx)"}}>{party.name}</div>
+              </div>
+              <div>
+                <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"var(--tx3)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>Type</div>
+                <span className="st" style={{background:`color-mix(in srgb,${typeColor(party.partyType)} 12%,transparent)`,color:typeColor(party.partyType)}}>{party.partyType}</span>
+              </div>
+              {party.phone && <div><div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"var(--tx3)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>Phone</div><div style={{fontSize:13,color:"var(--tx2)"}}>{party.phone}</div></div>}
+              {party.address && <div><div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"var(--tx3)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>Address</div><div style={{fontSize:13,color:"var(--tx2)"}}>{party.address}</div></div>}
+              <div>
+                <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"var(--tx3)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>Case Started</div>
+                <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:13,color:"var(--g)"}}>{new Date(party.caseStartDate).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"})}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="stG stG3" style={{animationDelay:"100ms"}}>
+            <div className="sc3d" style={{["--ac" as any]:"#f87171",animationDelay:"0ms"}}>
+              <div className="sc3d-glow"/><div className="sc3d-icon">📈</div>
+              <div className="sc3d-val">PKR {(entries.filter(e=>e.type==="DEBIT").reduce((s,e)=>s+e.amount,0) + (party.openingBalance||0)).toLocaleString()}</div>
+              <div className="sc3d-lbl">TOTAL DEBITS (incl. opening)</div><div className="sc3d-shine"/>
+            </div>
+            <div className="sc3d" style={{["--ac" as any]:"#34d399",animationDelay:"100ms"}}>
+              <div className="sc3d-glow"/><div className="sc3d-icon">💳</div>
+              <div className="sc3d-val">PKR {entries.filter(e=>e.type==="CREDIT").reduce((s,e)=>s+e.amount,0).toLocaleString()}</div>
+              <div className="sc3d-lbl">TOTAL CREDITS (PAYMENTS)</div><div className="sc3d-shine"/>
+            </div>
+            <div className="sc3d" style={{["--ac" as any]:bal>0?"#f87171":"#34d399",animationDelay:"200ms"}}>
+              <div className="sc3d-glow"/><div className="sc3d-icon">{bal>0?"⚠️":"✅"}</div>
+              <div className="sc3d-val" style={{color:bal>0?"var(--rd)":bal<0?"var(--gn)":"var(--tx)"}}>{bal>=0?"PKR ":"−PKR "}{Math.abs(bal).toLocaleString()}</div>
+              <div className="sc3d-lbl">OUTSTANDING BALANCE</div><div className="sc3d-shine"/>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Timeline */}
+      {selParty && (
+        <div className="gc gcE" style={{animationDelay:"300ms"}}>
+          <div className="ch">
+            <h3>📒 {party?.name || ""} — Ledger Timeline</h3>
+            <span className="badge">{entries.length} transactions</span>
+          </div>
+          {loading ? <div className="ldg">Loading...</div> : (
+            <div className="tw">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>TRANSACTION DATE</th>
+                    <th>TYPE</th>
+                    <th>AMOUNT</th>
+                    <th>METHOD</th>
+                    <th>NOTES</th>
+                    <th>RUNNING BALANCE</th>
+                    <th>ENTRY TIME</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Case Start Row */}
+                  {party && (
+                    <tr style={{background:"rgba(201,168,76,.04)"}}>
+                      <td colSpan={8} style={{padding:"12px 16px"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:12}}>
+                          <span style={{width:10,height:10,borderRadius:"50%",background:"var(--g)",display:"inline-block",boxShadow:"0 0 8px rgba(201,168,76,.5)"}}/>
+                          <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,color:"var(--g)",fontWeight:600}}>
+                            CASE STARTED: {new Date(party.caseStartDate).toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"})}
+                          </span>
+                          {party.openingBalance !== 0 && (
+                            <span style={{fontSize:12,color:"var(--tx2)"}}>
+                              — Opening Balance: <strong style={{color:"var(--rd)"}}>PKR {Math.abs(party.openingBalance).toLocaleString()}</strong>
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  {entries.length === 0
+                    ? <tr><td colSpan={8} className="emp">No transactions yet. Add the first one.</td></tr>
+                    : entries.map((e, i) => (
+                      <tr key={e._id} className="tr" style={{animationDelay:`${i*40}ms`}}>
+                        <td>
+                          <span className="mono">{new Date(e.transactionDate).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"})}</span>
+                        </td>
+                        <td>
+                          <span className="st" style={{
+                            background: e.type==="DEBIT" ? "rgba(248,113,113,.12)" : "rgba(52,211,153,.12)",
+                            color: e.type==="DEBIT" ? "var(--rd)" : "var(--gn)"
+                          }}>
+                            {e.type}
+                          </span>
+                        </td>
+                        <td style={{fontWeight:700, color: e.type==="DEBIT" ? "var(--rd)" : "var(--gn)"}}>
+                          {e.type==="DEBIT" ? "+" : "−"}PKR {e.amount.toLocaleString()}
+                        </td>
+                        <td>
+                          <span className="st" style={{background:"rgba(167,139,250,.08)",color:"var(--pr)",fontSize:10}}>
+                            {e.paymentMethod}
+                          </span>
+                        </td>
+                        <td style={{color:"var(--tx2)",fontSize:12}}>{e.notes || "—"}</td>
+                        <td style={{fontWeight:700, color: e.runningBalance>0?"var(--rd)":e.runningBalance<0?"var(--gn)":"var(--tx)"}}>
+                          PKR {e.runningBalance.toLocaleString()}
+                        </td>
+                        <td>
+                          <span className="mono" style={{fontSize:10,color:"var(--tx3)"}}>{new Date(e.systemTimestamp).toLocaleString()}</span>
+                        </td>
+                        <td>
+                          <button className="ib id" onClick={()=>delEntry(e._id)} title="Delete transaction">🗑️</button>
+                        </td>
+                      </tr>
+                    ))
+                  }
+                  {/* Final Balance Row */}
+                  {party && entries.length > 0 && (
+                    <tr style={{background:"rgba(201,168,76,.06)"}}>
+                      <td colSpan={5} style={{padding:"14px 16px",fontWeight:600,color:"var(--tx2)"}}>CURRENT OUTSTANDING BALANCE</td>
+                      <td colSpan={3} style={{padding:"14px 16px",fontWeight:800,fontSize:16, color: bal>0?"var(--rd)":bal<0?"var(--gn)":"var(--gn)"}}>
+                        {bal>=0?"PKR ":"−PKR "}{Math.abs(bal).toLocaleString()}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Add Transaction Modal */}
+      <Modal isOpen={showTxn} onClose={()=>setShowTxn(false)} title="➕ Add Transaction">
+        {err && <div className="errbx">{err}</div>}
+        <div className="fg">
+          <div className="fd">
+            <label>Transaction Date *</label>
+            <input type="date" value={txnForm.transactionDate} onChange={e=>setTxnForm({...txnForm,transactionDate:e.target.value})}/>
+          </div>
+          <div className="fd">
+            <label>Type *</label>
+            <select value={txnForm.type} onChange={e=>setTxnForm({...txnForm,type:e.target.value as "DEBIT"|"CREDIT"})}>
+              <option value="DEBIT">DEBIT (Amount Owed / Goods Given)</option>
+              <option value="CREDIT">CREDIT (Payment Received)</option>
+            </select>
+          </div>
+          <div className="fd">
+            <label>Amount (PKR) *</label>
+            <input type="number" min="1" placeholder="Enter amount" value={txnForm.amount} onChange={e=>setTxnForm({...txnForm,amount:e.target.value})} onFocus={e=>e.target.select()}/>
+          </div>
+          <div className="fd">
+            <label>Payment Method *</label>
+            <select value={txnForm.paymentMethod} onChange={e=>setTxnForm({...txnForm,paymentMethod:e.target.value as PartyLedgerEntry["paymentMethod"]})}>
+              <option value="Cash">Cash</option>
+              <option value="Online Transfer">Online Transfer</option>
+              <option value="Cheque">Cheque</option>
+            </select>
+          </div>
+          <div className="fd" style={{gridColumn:"1/-1"}}>
+            <label>Notes (Optional)</label>
+            <input placeholder="e.g. Partial payment for January order" value={txnForm.notes} onChange={e=>setTxnForm({...txnForm,notes:e.target.value})}/>
+          </div>
+        </div>
+        <div style={{background:"rgba(201,168,76,.05)",border:"1px solid rgba(201,168,76,.15)",borderRadius:10,padding:"12px 16px",marginTop:8,fontSize:12,color:"var(--tx2)"}}>
+          <strong style={{color:"var(--g)"}}>Note:</strong> Transaction Date is user-entered business date. System will record the actual entry time automatically.
+        </div>
+        <div className="ma">
+          <button className="sb" onClick={()=>setShowTxn(false)}>Cancel</button>
+          <button className="pb" onClick={addTransaction}>➕ Record Transaction</button>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
 // ── AUTH PAGES ────────────────────────────────────────────────────────────
 type AuthView = "login" | "signup" | "forgot";
 
@@ -1001,22 +1416,25 @@ function ForgotPage({ goLogin }: { goLogin:()=>void }) {
 
 // ── NAV ───────────────────────────────────────────────────────────────────
 const NAV = [
-  {key:"dashboard",icon:"🏠",label:"Dashboard"},
-  {key:"stock",    icon:"📦",label:"Stock Management"},
-  {key:"sales",    icon:"📝",label:"Sales Input"},
-  {key:"monthly",  icon:"📊",label:"Monthly Records"},
-  {key:"suppliers",icon:"🤝",label:"Supplier Management"},
-  {key:"ledger",   icon:"📒",label:"Ledger / Khata"},
+  {key:"dashboard",    icon:"🏠",label:"Dashboard"},
+  {key:"stock",        icon:"📦",label:"Stock Management"},
+  {key:"sales",        icon:"📝",label:"Sales Input"},
+  {key:"monthly",      icon:"📊",label:"Monthly Records"},
+  {key:"suppliers",    icon:"🤝",label:"Supplier Management"},
+  {key:"ledger",       icon:"📒",label:"Ledger / Khata"},
+  {key:"parties",      icon:"👥",label:"Party Management"},
+  {key:"party-ledger", icon:"📖",label:"Khata Book"},
 ];
 
 // ── APP ───────────────────────────────────────────────────────────────────
 export default function App() {
-  const [page, setPage]       = useState("dashboard");
-  const [col,  setCol]        = useState(false);
-  const [time, setTime]       = useState(new Date());
+  const [page, setPage]         = useState("dashboard");
+  const [col,  setCol]          = useState(false);
+  const [time, setTime]         = useState(new Date());
   const [authView, setAuthView] = useState<AuthView>("login");
-  const [user, setUser]       = useState<{id:string;name:string;email:string}|null>(getUser);
-  const [authed, setAuthed]   = useState<boolean>(!!getToken());
+  const [user, setUser]         = useState<{id:string;name:string;email:string}|null>(getUser);
+  const [authed, setAuthed]     = useState<boolean>(!!getToken());
+  const [partyLedgerId, setPartyLedgerId] = useState<string | undefined>(undefined);
 
   useEffect(() => { const t = setInterval(()=>setTime(new Date()),1000); return ()=>clearInterval(t); }, []);
 
@@ -1027,12 +1445,14 @@ export default function App() {
 
   const renderPage = () => {
     switch(page){
-      case "stock":     return <StockPage/>;
-      case "sales":     return <SalesPage/>;
-      case "monthly":   return <MonthlyPage/>;
-      case "suppliers": return <SupplierPage/>;
-      case "ledger":    return <LedgerPage/>;
-      default:          return <DashboardPage/>;
+      case "stock":         return <StockPage/>;
+      case "sales":         return <SalesPage/>;
+      case "monthly":       return <MonthlyPage/>;
+      case "suppliers":     return <SupplierPage/>;
+      case "ledger":        return <LedgerPage/>;
+      case "parties":       return <PartyPage onViewLedger={(id)=>{ setPartyLedgerId(id); setPage("party-ledger"); }}/>;
+      case "party-ledger":  return <PartyLedgerPage initialPartyId={partyLedgerId} onBack={()=>setPage("parties")}/>;
+      default:              return <DashboardPage/>;
     }
   };
 
