@@ -33,10 +33,10 @@
     "xlsx": "^0.18.5"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "node init && react-scripts start",
     "server": "cd server && nodemon server.ts",
-    "dev": "concurrently \"npm start\" \"npm run server\"",
-    "build": "react-scripts build && echo 'Build completed successfully'",
+    "dev": "node init && concurrently \"npm start\" \"npm run server\"",
+    "build": "node init && react-scripts build && echo 'Build completed successfully'",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "serve": "serve -s build -l 3000"

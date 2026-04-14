@@ -58,6 +58,7 @@ interface Party {
   partyType: 'Supplier' | 'Customer' | 'Other';
   openingBalance: number;
   caseStartDate: string;
+  notes?: string;
 }
 
 interface PartyLedgerEntry {
@@ -823,7 +824,7 @@ function PartyPage({ onViewLedger }: { onViewLedger: (partyId: string) => void }
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Party | null>(null);
-  const [form, setForm] = useState({ name: "", phone: "", address: "", partyType: "Customer" as Party["partyType"], openingBalance: "", caseStartDate: new Date().toISOString().split("T")[0] });
+  const [form, setForm] = useState({ name: "", phone: "", address: "", partyType: "Customer" as Party["partyType"], openingBalance: "", caseStartDate: new Date().toISOString().split("T")[0], notes: "" });
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
 
@@ -832,12 +833,12 @@ function PartyPage({ onViewLedger }: { onViewLedger: (partyId: string) => void }
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ name: "", phone: "", address: "", partyType: "Customer", openingBalance: "", caseStartDate: new Date().toISOString().split("T")[0] });
+    setForm({ name: "", phone: "", address: "", partyType: "Customer", openingBalance: "", caseStartDate: new Date().toISOString().split("T")[0], notes: "" });
     setErr(""); setShowModal(true);
   };
   const openEdit = (p: Party) => {
     setEditing(p);
-    setForm({ name: p.name, phone: p.phone || "", address: p.address || "", partyType: p.partyType, openingBalance: p.openingBalance ? String(p.openingBalance) : "", caseStartDate: new Date(p.caseStartDate).toISOString().split("T")[0] });
+    setForm({ name: p.name, phone: p.phone || "", address: p.address || "", partyType: p.partyType, openingBalance: p.openingBalance ? String(p.openingBalance) : "", caseStartDate: new Date(p.caseStartDate).toISOString().split("T")[0], notes: p.notes || "" });
     setErr(""); setShowModal(true);
   };
 
@@ -931,6 +932,10 @@ function PartyPage({ onViewLedger }: { onViewLedger: (partyId: string) => void }
           <div className="fd" style={{gridColumn:"1/-1"}}>
             <label>Opening Balance (PKR)</label>
             <input type="number" placeholder="0 (leave blank if none)" value={form.openingBalance} onChange={e=>setForm({...form,openingBalance:e.target.value})} onFocus={e=>e.target.select()}/>
+          </div>
+          <div className="fd" style={{gridColumn:"1/-1"}}>
+            <label>Notes</label>
+            <textarea placeholder="Additional notes (optional)" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} rows={3} style={{resize:"vertical"}}/>
           </div>
         </div>
         <div className="ma">
@@ -1421,7 +1426,6 @@ const NAV = [
   {key:"sales",        icon:"📝",label:"Sales Input"},
   {key:"monthly",      icon:"📊",label:"Monthly Records"},
   {key:"suppliers",    icon:"🤝",label:"Supplier Management"},
-  {key:"ledger",       icon:"📒",label:"Ledger / Khata"},
   {key:"parties",      icon:"👥",label:"Party Management"},
   {key:"party-ledger", icon:"📖",label:"Khata Book"},
 ];
@@ -1449,7 +1453,6 @@ export default function App() {
       case "sales":         return <SalesPage/>;
       case "monthly":       return <MonthlyPage/>;
       case "suppliers":     return <SupplierPage/>;
-      case "ledger":        return <LedgerPage/>;
       case "parties":       return <PartyPage onViewLedger={(id)=>{ setPartyLedgerId(id); setPage("party-ledger"); }}/>;
       case "party-ledger":  return <PartyLedgerPage initialPartyId={partyLedgerId} onBack={()=>setPage("parties")}/>;
       default:              return <DashboardPage/>;

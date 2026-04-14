@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "scripts": {
     "prestart": "tsc",
-    "start": "node dist/server.js",
-    "dev": "nodemon server.ts",
-    "build": "tsc"
+    "start": "node init && node dist/server.js",
+    "dev": "node init && nodemon server.ts",
+    "build": "node init && tsc"
   },
   "main": "index.js",
   "keywords": [],

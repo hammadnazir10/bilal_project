@@ -17,7 +17,6 @@ yarn-error.log*
 Thumbs.db
 
 # Env files
-.env
 .env.*      # covers .env.development, .env.local, etc.
 
 # Build output
@@ -32,7 +31,6 @@ temp/
 .nuxt/
 .vite/
 coverage/
-.vscode/
 .idea/
 
 # Testing
@@ -118,7 +116,6 @@ __pycache__/
 .idea/
 
 # Ignore VSCode settings (optional)
-.vscode/
 
 # Ignore environment-specific configuration
 config/*.local.js
@@ -126,3 +123,4 @@ config/*.dev.js
 
 # Optional: ignore credentials config
 credentials.json
+config.bat
